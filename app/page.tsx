@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from './supabase';
 
 interface Pet {
@@ -72,6 +73,18 @@ export default function Home() {
       <header className="max-w-6xl mx-auto flex justify-between items-center mb-8 border-b pb-4">
         <h1 className="text-3xl font-bold text-pink-600">🐾 PetMatch</h1>
         <div className="space-x-4">
+          <Link
+            href="/solicitudes"
+            className="text-pink-600 border border-pink-600 px-4 py-2 rounded-lg font-semibold hover:bg-pink-50 transition-colors inline-block"
+          >
+            Ver Solicitudes
+          </Link>
+          <Link
+            href="/nueva-mascota"
+            className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors inline-block"
+          >
+            + Publicar Mascota
+          </Link>
           <button className="bg-pink-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-pink-700">
             Iniciar Sesión
           </button>
