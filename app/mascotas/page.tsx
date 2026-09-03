@@ -14,10 +14,13 @@ export default function MascotasPage() {
 
   const fetchPets = async () => {
     try {
-      const { data } = await supabase.from('pets').select('*');
+      setLoading(true);
+      // Traemos todos los campos para adaptarnos a cualquier nombre de columna
+      const { data, error } = await supabase.from('pets').select('*');
+      if (error) throw error;
       if (data) setPets(data);
     } catch (error) {
-      console.error('Error al cargar mascotas');
+      console.error('Error al cargar mascotas:', error);
     } finally {
       setLoading(false);
     }
@@ -41,16 +44,43 @@ export default function MascotasPage() {
       <main className="max-w-4xl mx-auto p-6">
         <h2 className="text-2xl font-bold text-slate-800 mb-2">Panel de Mascotas</h2>
         <p className="text-sm text-slate-500 mb-6">Administra el catálogo de mascotas disponibles</p>
-        {loading ? <p>Cargando mascotas...</p> : pets.length === 0 ? (
+        
+        {loading ? (
+          <p className="text-slate-500">Cargando mascotas...</p>
+        ) : pets.length === 0 ? (
           <div className="bg-white p-6 rounded-xl border border-slate-100 text-slate-500">No hay mascotas registradas.</div>
         ) : (
           <div className="grid gap-4">
-            {pets.map((pet) => (
-              <div key={pet.id} className="bg-white p-4 rounded-xl border border-slate-100">
-                <h3 className="font-bold text-lg">{pet.name || 'Mascota sin nombre'}</h3>
-                <p className="text-sm text-slate-500">Especie: {pet.species}</p>
-              </div>
-            ))}
+            {pets.map((pet) => {
+              // Buscamos dinámicamente el campo de imagen y de especie/tipo sin importar cómo se llamen en tu BD
+              const petImage = pet.image || pet.image_url || pet.photo || pet.foto;
+              const petSpecies = pet.species || pet.tipo || pet.breed || pet.raza;
+
+              return (
+                <div key={pet.id} className="bg-white p-4 rounded-xl border border-slate-100 flex items-center gap-4 shadow-sm">
+                  {/* Imagen de la mascota si existe */}
+                  {petImage ? (
+                    <img 
+                      src={petImage} 
+                      alt={pet.name || 'Mascota'} 
+                      className="w-20 h-20 object-cover rounded-lg border border-slate-200"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 bg-slate-100 rounded-lg flex items-center justify-center text-xs text-slate-400">
+                      Sin foto
+                    </div>
+                  )}
+                  
+                  <div>
+                    <h3 className="font-bold text-lg text-slate-800">{pet.name || 'Mascota sin nombre'}</h3>
+                    <p className="text-sm text-slate-500">
+                      <span className="font-medium">Detalle:</span> {petSpecies || 'No especificado'}
+                    </p>
+                    <span className="text-xs text-slate-400">ID: {pet.id}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </main>
