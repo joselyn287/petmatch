@@ -30,16 +30,21 @@ export default function MascotasPage() {
     if (message === null) return;
 
     try {
-      // Obtenemos el usuario autenticado actual de Supabase (si existe)
-      const { data: { user } } = await supabase.auth.getUser();
+      // Obtenemos la sesión del usuario actual autenticado
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      // Usamos el ID del usuario logueado, o un ID de respaldo genérico si no hay sesión estricta
-      const applicantId = user?.id || '00000000-0000-0000-0000-000000000000';
+      if (sessionError || !session?.user) {
+        alert('Debes iniciar sesión para poder enviar una solicitud de adopción.');
+        return;
+      }
 
+      const userId = session.user.id;
+
+      // Insertamos la solicitud usando el ID del usuario autenticado real
       const { error } = await supabase.from('adoption_requests').insert([
         { 
           pet_id: petId, 
-          applicant_id: applicantId, 
+          applicant_id: userId, 
           message: message || 'Hola, me encantaría adoptar a esta mascota', 
           status: 'pendiente' 
         }
