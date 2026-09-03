@@ -13,7 +13,6 @@ interface Mascota {
   imagen?: string
 }
 
-// Datos de respaldo de ejemplo por si Supabase está vacío
 const mascotasEjemplo: Mascota[] = [
   {
     id: '1',
@@ -47,7 +46,6 @@ export default function Home() {
     async function fetchMascotas() {
       const { data, error } = await supabase.from('mascotas').select('*')
       if (error || !data || data.length === 0) {
-        // Si hay error o no hay registros, usamos los ejemplos para que luzca perfecto
         setMascotas(mascotasEjemplo)
       } else {
         setMascotas(data)
@@ -58,20 +56,21 @@ export default function Home() {
   }, [])
 
   const handleSolicitarAdopcion = async (nombreMascota: string) => {
-    // Verificamos si hay sesión activa
-    const { data: { session } } = await supabase.auth.getSession()
+    // Verificación real de sesión en Supabase
+    const { data: { session }, error } = await supabase.auth.getSession()
 
-    if (!session) {
-      alert('Debes iniciar sesión o registrarte para solicitar una adopción.')
-      router.push('/login') // O /register según tu ruta de autenticación
-    } else {
-      alert(`¡Solicitud de adopción enviada con éxito para ${nombreMascota}! Nos pondremos en contacto contigo.`)
+    if (error || !session || !session.user) {
+      alert('Acceso denegado: Debes iniciar sesión o registrarte para solicitar una adopción.')
+      router.push('/login')
+      return // Detiene completamente la ejecución
     }
+
+    // Si hay sesión, recién aquí procede con la solicitud real
+    alert(`¡Solicitud de adopción enviada con éxito para ${nombreMascota}!`)
   }
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
-      {/* Barra de navegación superior */}
       <header className="max-w-6xl mx-auto px-6 py-6 flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-pink-100">
         <div className="flex items-center gap-2">
           <span className="text-3xl">🐾</span>
@@ -93,11 +92,10 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Contenido principal */}
       <section className="max-w-6xl mx-auto px-6 py-10">
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Mascotas Disponibles para Adopción</h2>
-          <p className="text-gray-600">Encuentra a tu nuevo compañero ideal. Regístrate para iniciar tu proceso de adopción.</p>
+          <p className="text-gray-600">Encuentra a tu nuevo compañero ideal. Inicia sesión para enviar tu solicitud.</p>
         </div>
 
         {loading ? (
