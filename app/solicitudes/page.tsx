@@ -17,7 +17,7 @@ interface AdoptionRequest {
   pets: {
     name: string;
     breed: string;
-  } | null;
+  }[] | null; // <-- Cambiado a arreglo o null para coincidir con Supabase
 }
 
 export default function SolicitudesPage() {
@@ -50,7 +50,7 @@ export default function SolicitudesPage() {
       }
 
       if (data) {
-        setRequests(data as AdoptionRequest[]);
+        setRequests(data as unknown as AdoptionRequest[]);
       }
     } catch (err: any) {
       setError('Error al cargar las solicitudes de adopción.');
@@ -93,27 +93,30 @@ export default function SolicitudesPage() {
 
         {!loading && requests.length > 0 && (
           <div className="grid gap-4">
-            {requests.map((req) => (
-              <div key={req.id} className="rounded-xl bg-white p-6 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-800">
-                    Mascota: {req.pets?.name || 'Desconocida'} ({req.pets?.breed || 'Sin raza'})
-                  </h3>
-                  <p className="text-sm text-slate-600 mt-1">Mensaje: {req.message}</p>
-                  <span className="inline-block mt-2 text-xs text-slate-400">
-                    Fecha: {new Date(req.created_at).toLocaleDateString()}
-                  </span>
+            {requests.map((req) => {
+              const pet = req.pets && req.pets.length > 0 ? req.pets[0] : null;
+              return (
+                <div key={req.id} className="rounded-xl bg-white p-6 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-800">
+                      Mascota: {pet?.name || 'Desconocida'} ({pet?.breed || 'Sin raza'})
+                    </h3>
+                    <p className="text-sm text-slate-600 mt-1">Mensaje: {req.message}</p>
+                    <span className="inline-block mt-2 text-xs text-slate-400">
+                      Fecha: {new Date(req.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      req.status === 'aprobado' ? 'bg-emerald-100 text-emerald-700' : 
+                      req.status === 'rechazado' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      {req.status || 'Pendiente'}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    req.status === 'aprobado' ? 'bg-emerald-100 text-emerald-700' : 
-                    req.status === 'rechazado' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
-                  }`}>
-                    {req.status || 'Pendiente'}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
