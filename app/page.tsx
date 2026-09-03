@@ -1,27 +1,73 @@
-import Link from 'next/link';
+'use client';
 
-export default function Home() {
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Intentar iniciar sesión con Supabase Auth
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+
+      // Si es exitoso, redirigir al panel de mascotas
+      router.push('/mascotas');
+    } catch (err: any) {
+      alert('Error al iniciar sesión: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-slate-50 font-sans">
-      <div className="max-w-md w-full rounded-2xl bg-white p-8 shadow-sm border border-slate-100 text-center">
-        <h1 className="text-3xl font-bold text-pink-600 mb-2">PetMatch</h1>
-        <p className="text-sm text-slate-500 mb-6">Plataforma de gestión de solicitudes de adopción</p>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
+      <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm max-w-md w-full">
+        <h1 className="text-2xl font-bold text-pink-600 text-center mb-2">PetMatch</h1>
+        <p className="text-sm text-slate-500 text-center mb-6">Inicia sesión para gestionar las adopciones</p>
         
-        <div className="flex flex-col gap-3">
-          <Link 
-            href="/login" 
-            className="w-full rounded-lg bg-pink-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-pink-700 transition"
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">Correo Electrónico</label>
+            <input 
+              type="email" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="tu@correo.com"
+              required
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-pink-600"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">Contraseña</label>
+            <input 
+              type="password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-pink-600"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold py-2.5 rounded-lg text-sm transition shadow-sm"
           >
-            Iniciar Sesión
-          </Link>
-          <Link 
-            href="/solicitudes" 
-            className="w-full rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition"
-          >
-            Ver Solicitudes Directo
-          </Link>
-        </div>
+            {loading ? 'Entrando...' : 'Iniciar Sesión'}
+          </button>
+        </form>
       </div>
-    </main>
+    </div>
   );
 }
