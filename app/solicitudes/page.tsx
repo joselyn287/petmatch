@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '../../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+// Configuración directa de Supabase
+const supabaseUrl = 'https://brujnlgnalojjujnakmc.supabase.co';
+const supabaseAnonKey = 'sb_publishable_FgZIT0x-bOEMOgrrg9K6ww_mi2-ZTdT';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface AdoptionRequest {
   id: string;
@@ -28,7 +33,7 @@ export default function SolicitudesPage() {
     try {
       setLoading(true);
       const { data, error: fetchError } = await supabase
-        .from('adoption_requests') // Asegúrate de que el nombre de tu tabla sea correcto
+        .from('adoption_requests')
         .select(`
           id,
           message,
