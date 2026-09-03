@@ -16,7 +16,6 @@ export default function SolicitudesPage() {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      // Traemos todos los campos de la solicitud
       const { data, error: fetchError } = await supabase
         .from('adoption_requests')
         .select('*');
@@ -34,19 +33,38 @@ export default function SolicitudesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 font-sans">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-pink-600">Panel de Solicitudes</h1>
-            <p className="text-sm text-slate-500">Gestiona las solicitudes de adopción de mascotas</p>
+    <div className="min-h-screen bg-slate-50 font-sans">
+      {/* Barra de navegación superior con opciones */}
+      <header className="bg-white border-b border-slate-200 px-6 py-4">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-8">
+            <h1 className="text-xl font-bold text-pink-600">PetMatch Admin</h1>
+            <nav className="hidden md:flex gap-4">
+              <Link href="/solicitudes" className="text-sm font-semibold text-pink-600 border-b-2 border-pink-600 pb-1">
+                Solicitudes
+              </Link>
+              <Link href="#" className="text-sm font-medium text-slate-500 hover:text-slate-800 transition">
+                Mascotas
+              </Link>
+              <Link href="#" className="text-sm font-medium text-slate-500 hover:text-slate-800 transition">
+                Usuarios
+              </Link>
+            </nav>
           </div>
           <Link
             href="/login"
-            className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-300 transition"
+            className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition"
           >
             Cerrar Sesión
           </Link>
+        </div>
+      </header>
+
+      {/* Contenido principal */}
+      <main className="max-w-4xl mx-auto p-6">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-slate-800">Panel de Solicitudes</h2>
+          <p className="text-sm text-slate-500">Gestiona las solicitudes de adopción de mascotas</p>
         </div>
 
         {loading && (
@@ -97,7 +115,7 @@ export default function SolicitudesPage() {
             ))}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
