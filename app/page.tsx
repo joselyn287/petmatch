@@ -16,14 +16,14 @@ export default function Home() {
             href="/api-mascotas"
             className="px-6 py-3 bg-pink-600 text-white font-semibold rounded-xl shadow hover:bg-pink-700 transition"
           >
-            Ver Consumo de API Externa (Fetch)
+            Ver API Externa
           </Link>
           
           <Link
             href="/login"
             className="px-6 py-3 bg-gray-800 text-white font-semibold rounded-xl shadow hover:bg-gray-900 transition"
           >
-            Panel de Administración
+            Administración
           </Link>
         </div>
       </div>
