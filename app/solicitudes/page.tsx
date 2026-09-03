@@ -12,6 +12,13 @@ interface Mascota {
   imagen?: string
 }
 
+interface Solicitud {
+  id: string
+  pet_id?: string
+  applicant_id?: string
+  status?: string
+}
+
 const mascotasEjemplo: Mascota[] = [
   {
     id: '1',
@@ -39,6 +46,7 @@ const mascotasEjemplo: Mascota[] = [
 export default function SolicitudesPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [mascotas, setMascotas] = useState<Mascota[]>([])
+  const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
   const [loading, setLoading] = useState(true)
 
   const ADMIN_EMAIL = 'andrea.delgado499@gmail.com'
@@ -56,6 +64,13 @@ export default function SolicitudesPage() {
       } else {
         setMascotas(data)
       }
+
+      // 3. Cargar solicitudes reales desde adoption_requests para el admin
+      const { data: solData, error: solError } = await supabase.from('adoption_requests').select('*')
+      if (!solError && solData) {
+        setSolicitudes(solData)
+      }
+
       setLoading(false)
     }
     initData()
@@ -87,8 +102,21 @@ export default function SolicitudesPage() {
               <p className="text-green-800 font-bold">Modo Administrador Activo ({userEmail})</p>
               <p className="text-sm text-green-600">Aquí puedes revisar, aprobar o rechazar las solicitudes de los usuarios.</p>
             </div>
-            {/* Aquí puedes mantener tu tabla de solicitudes de admin si ya la tienes */}
-            <p className="text-gray-500 italic">No hay solicitudes pendientes de aprobación en este momento.</p>
+            
+            {solicitudes.length === 0 ? (
+              <p className="text-gray-500 italic">No hay solicitudes pendientes de aprobación en este momento.</p>
+            ) : (
+              <div className="space-y-4">
+                {solicitudes.map((sol) => (
+                  <div key={sol.id} className="border border-gray-200 p-4 rounded-xl flex justify-between items-center bg-gray-50">
+                    <div>
+                      <p className="text-sm font-bold text-gray-800">ID Solicitud: {sol.id}</p>
+                      <p className="text-xs text-gray-600">Estado actual: <span className="font-semibold text-pink-600">{sol.status || 'pendiente'}</span></p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           /* Vista para el Usuario Regular: Muestra las mascotas para solicitar adopción */
