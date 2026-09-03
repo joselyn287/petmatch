@@ -4,19 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
-interface AdoptionRequest {
-  id: string;
-  message: string;
-  status: string;
-  created_at: string;
-  pets: {
-    name: string;
-    breed: string;
-  }[] | null;
-}
-
 export default function SolicitudesPage() {
-  const [requests, setRequests] = useState<AdoptionRequest[]>([]);
+  const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -27,28 +16,20 @@ export default function SolicitudesPage() {
   const fetchRequests = async () => {
     try {
       setLoading(true);
+      // Consulta directa y segura a la tabla adoption_requests
       const { data, error: fetchError } = await supabase
         .from('adoption_requests')
-        .select(`
-          id,
-          message,
-          status,
-          created_at,
-          pets (
-            name,
-            breed
-          )
-        `);
+        .select('*');
 
       if (fetchError) {
         throw fetchError;
       }
 
       if (data) {
-        setRequests(data as unknown as AdoptionRequest[]);
+        setRequests(data);
       }
     } catch (err: any) {
-      setError('Error al cargar las solicitudes de adopción.');
+      setError(err.message || 'Error al cargar las solicitudes de adopción.');
     } finally {
       setLoading(false);
     }
@@ -63,10 +44,10 @@ export default function SolicitudesPage() {
             <p className="text-sm text-slate-500">Gestiona las solicitudes de adopción de mascotas</p>
           </div>
           <Link
-            href="/"
+            href="/login"
             className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-300 transition"
           >
-            Cerrar Sesión / Volver
+            Cerrar Sesión
           </Link>
         </div>
 
@@ -82,36 +63,27 @@ export default function SolicitudesPage() {
 
         {!loading && !error && requests.length === 0 && (
           <div className="rounded-2xl bg-white p-8 text-center shadow-sm border border-slate-100">
-            <p className="text-slate-500">No hay solicitudes de adopción registradas por el momento.</p>
+            <p className="text-slate-500">No hay solicitudes de adopción registradas.</p>
           </div>
         )}
 
         {!loading && requests.length > 0 && (
           <div className="grid gap-4">
-            {requests.map((req) => {
-              const pet = req.pets && req.pets.length > 0 ? req.pets[0] : null;
-              return (
-                <div key={req.id} className="rounded-xl bg-white p-6 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-800">
-                      Mascota: {pet?.name || 'Desconocida'} ({pet?.breed || 'Sin raza'})
-                    </h3>
-                    <p className="text-sm text-slate-600 mt-1">Mensaje: {req.message}</p>
-                    <span className="inline-block mt-2 text-xs text-slate-400">
-                      Fecha: {new Date(req.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      req.status === 'aprobado' ? 'bg-emerald-100 text-emerald-700' : 
-                      req.status === 'rechazado' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
-                    }`}>
-                      {req.status || 'Pendiente'}
-                    </span>
-                  </div>
+            {requests.map((req) => (
+              <div key={req.id} className="rounded-xl bg-white p-6 shadow-sm border border-slate-100 flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-800">
+                    Solicitud ID: {req.id.slice(0, 8)}...
+                  </h3>
+                  <p className="text-sm text-slate-600 mt-1">ID de Mascota: {req.pet_id}</p>
                 </div>
-              );
-            })}
+                <div>
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+                    {req.status || 'Pendiente'}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
