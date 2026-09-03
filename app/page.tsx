@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 
 interface Mascota {
   id: string
@@ -40,16 +39,9 @@ const mascotasEjemplo: Mascota[] = [
 export default function Home() {
   const [mascotas, setMascotas] = useState<Mascota[]>([])
   const [loading, setLoading] = useState(true)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const router = useRouter()
 
   useEffect(() => {
-    async function init() {
-      // Verificar si hay sesión activa
-      const { data: { session } } = await supabase.auth.getSession()
-      setIsLoggedIn(!!session)
-
-      // Cargar mascotas
+    async function fetchMascotas() {
       const { data, error } = await supabase.from('mascotas').select('*')
       if (error || !data || data.length === 0) {
         setMascotas(mascotasEjemplo)
@@ -58,18 +50,8 @@ export default function Home() {
       }
       setLoading(false)
     }
-    init()
+    fetchMascotas()
   }, [])
-
-  const handleAccion = (nombreMascota: string) => {
-    if (!isLoggedIn) {
-      // Si no está logueado, redirige directamente al login y BLOQUEA la solicitud
-      router.push('/login')
-    } else {
-      // Si está logueado, permite enviar la solicitud
-      alert(`¡Solicitud de adopción enviada con éxito para ${nombreMascota}!`)
-    }
-  }
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
@@ -89,27 +71,25 @@ export default function Home() {
             href="/login"
             className="px-4 py-2 bg-gray-900 text-white rounded-xl shadow hover:bg-gray-800 transition text-sm font-semibold"
           >
-            {isLoggedIn ? 'Mi Panel' : 'Iniciar Sesión / Registro'}
+            Iniciar Sesión / Registro
           </Link>
         </div>
       </header>
 
       <section className="max-w-6xl mx-auto px-6 py-10">
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Mascotas Disponibles para Adopción</h2>
-          <p className="text-gray-600">
-            {isLoggedIn ? 'Selecciona una mascota para enviar tu solicitud de adopción.' : 'Inicia sesión para poder enviar solicitudes de adopción.'}
-          </p>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Conoce a nuestras Mascotas</h2>
+          <p className="text-gray-600">Explora nuestro catálogo público. Inicia sesión para acceder al sistema de solicitudes de adopción.</p>
         </div>
 
         {loading ? (
           <div className="flex justify-center items-center py-20">
-            <p className="text-gray-500 font-medium animate-pulse">Cargando mascotas disponibles...</p>
+            <p className="text-gray-500 font-medium animate-pulse">Cargando catálogo...</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {mascotas.map((mascota) => (
-              <div key={mascota.id} className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100 flex flex-col hover:shadow-lg transition">
+              <div key={mascota.id} className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100 flex flex-col">
                 {mascota.imagen ? (
                   <img src={mascota.imagen} alt={mascota.nombre} className="h-52 w-full object-cover" />
                 ) : (
@@ -122,16 +102,9 @@ export default function Home() {
                     <p className="text-sm text-gray-600 mb-4"><span className="font-semibold">Edad:</span> {mascota.edad}</p>
                   </div>
                   
-                  <button 
-                    onClick={() => handleAccion(mascota.nombre)}
-                    className={`w-full py-2.5 px-4 rounded-xl font-semibold transition shadow-sm ${
-                      isLoggedIn 
-                        ? 'bg-pink-600 text-white hover:bg-pink-700' 
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    {isLoggedIn ? 'Solicitar Adopción' : 'Inicia sesión para adoptar'}
-                  </button>
+                  <div className="bg-pink-50 text-pink-700 text-center py-2 rounded-xl text-xs font-semibold">
+                    Inicia sesión para adoptar
+                  </div>
                 </div>
               </div>
             ))}
