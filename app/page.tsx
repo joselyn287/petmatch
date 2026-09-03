@@ -35,9 +35,9 @@ export default function LoginPage() {
       } else {
         setMessage('¡Inicio de sesión exitoso!')
         
-        // Redirige automáticamente al usuario tras 1 segundo
+        // Redirige automáticamente a la sección de solicitudes tras 1 segundo
         setTimeout(() => {
-          router.push('/') // Cambia '/' por '/dashboard' o '/pets' si tienes esa pantalla
+          router.push('/solicitudes')
         }, 1000)
       }
     } catch (err) {
