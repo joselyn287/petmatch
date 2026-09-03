@@ -30,13 +30,9 @@ export default function MascotasPage() {
     if (message === null) return;
 
     try {
-      // Usamos el ID fijo de prueba que coincide con la base de datos
-      const applicantId = '11111111-1111-1111-1111-111111111111';
-
       const { error } = await supabase.from('adoption_requests').insert([
         { 
           pet_id: petId, 
-          applicant_id: applicantId, 
           message: message || 'Hola, me encantaría adoptar a esta mascota', 
           status: 'pendiente' 
         }
