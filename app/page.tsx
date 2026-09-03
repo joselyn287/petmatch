@@ -40,10 +40,16 @@ const mascotasEjemplo: Mascota[] = [
 export default function Home() {
   const [mascotas, setMascotas] = useState<Mascota[]>([])
   const [loading, setLoading] = useState(true)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    async function fetchMascotas() {
+    async function init() {
+      // Verificar si hay sesión activa
+      const { data: { session } } = await supabase.auth.getSession()
+      setIsLoggedIn(!!session)
+
+      // Cargar mascotas
       const { data, error } = await supabase.from('mascotas').select('*')
       if (error || !data || data.length === 0) {
         setMascotas(mascotasEjemplo)
@@ -52,21 +58,17 @@ export default function Home() {
       }
       setLoading(false)
     }
-    fetchMascotas()
+    init()
   }, [])
 
-  const handleSolicitarAdopcion = async (nombreMascota: string) => {
-    // Verificación real de sesión en Supabase
-    const { data: { session }, error } = await supabase.auth.getSession()
-
-    if (error || !session || !session.user) {
-      alert('Acceso denegado: Debes iniciar sesión o registrarte para solicitar una adopción.')
+  const handleAccion = (nombreMascota: string) => {
+    if (!isLoggedIn) {
+      // Si no está logueado, redirige directamente al login y BLOQUEA la solicitud
       router.push('/login')
-      return // Detiene completamente la ejecución
+    } else {
+      // Si está logueado, permite enviar la solicitud
+      alert(`¡Solicitud de adopción enviada con éxito para ${nombreMascota}!`)
     }
-
-    // Si hay sesión, recién aquí procede con la solicitud real
-    alert(`¡Solicitud de adopción enviada con éxito para ${nombreMascota}!`)
   }
 
   return (
@@ -87,7 +89,7 @@ export default function Home() {
             href="/login"
             className="px-4 py-2 bg-gray-900 text-white rounded-xl shadow hover:bg-gray-800 transition text-sm font-semibold"
           >
-            Iniciar Sesión / Registro
+            {isLoggedIn ? 'Mi Panel' : 'Iniciar Sesión / Registro'}
           </Link>
         </div>
       </header>
@@ -95,7 +97,9 @@ export default function Home() {
       <section className="max-w-6xl mx-auto px-6 py-10">
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Mascotas Disponibles para Adopción</h2>
-          <p className="text-gray-600">Encuentra a tu nuevo compañero ideal. Inicia sesión para enviar tu solicitud.</p>
+          <p className="text-gray-600">
+            {isLoggedIn ? 'Selecciona una mascota para enviar tu solicitud de adopción.' : 'Inicia sesión para poder enviar solicitudes de adopción.'}
+          </p>
         </div>
 
         {loading ? (
@@ -119,10 +123,14 @@ export default function Home() {
                   </div>
                   
                   <button 
-                    onClick={() => handleSolicitarAdopcion(mascota.nombre)}
-                    className="w-full bg-pink-600 text-white py-2.5 px-4 rounded-xl font-semibold hover:bg-pink-700 transition shadow-sm"
+                    onClick={() => handleAccion(mascota.nombre)}
+                    className={`w-full py-2.5 px-4 rounded-xl font-semibold transition shadow-sm ${
+                      isLoggedIn 
+                        ? 'bg-pink-600 text-white hover:bg-pink-700' 
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
                   >
-                    Solicitar Adopción
+                    {isLoggedIn ? 'Solicitar Adopción' : 'Inicia sesión para adoptar'}
                   </button>
                 </div>
               </div>
