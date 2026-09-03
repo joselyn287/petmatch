@@ -25,14 +25,24 @@ export default function MascotasPage() {
     }
   };
 
-  // Función para manejar la acción de adopción
   const handleAdopt = async (petId: string, petName: string) => {
     const message = prompt(`¿Deseas enviar una solicitud de adopción para ${petName}? Escribe un mensaje opcional:`);
-    if (message === null) return; // Si cancela
+    if (message === null) return;
 
     try {
+      // Obtenemos el usuario autenticado actual de Supabase (si existe)
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Usamos el ID del usuario logueado, o un ID de respaldo genérico si no hay sesión estricta
+      const applicantId = user?.id || '00000000-0000-0000-0000-000000000000';
+
       const { error } = await supabase.from('adoption_requests').insert([
-        { pet_id: petId, message: message || 'Hola, me encantaría adoptar a esta mascota', status: 'pendiente' }
+        { 
+          pet_id: petId, 
+          applicant_id: applicantId, 
+          message: message || 'Hola, me encantaría adoptar a esta mascota', 
+          status: 'pendiente' 
+        }
       ]);
 
       if (error) throw error;
@@ -95,7 +105,6 @@ export default function MascotasPage() {
                     </div>
                   </div>
 
-                  {/* Botón para adoptar */}
                   <button
                     onClick={() => handleAdopt(pet.id, pet.name || 'Mascota')}
                     className="w-full sm:w-auto bg-pink-600 hover:bg-pink-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition shadow-sm"
