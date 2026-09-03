@@ -30,17 +30,9 @@ export default function MascotasPage() {
     if (message === null) return;
 
     try {
-      // Buscamos cualquier usuario existente en la base de datos para usar su ID y cumplir con la regla
-      const { data: users, error: userError } = await supabase.from('users').select('id').limit(1);
+      // Usamos el ID fijo de prueba que coincide con la base de datos
+      const applicantId = '11111111-1111-1111-1111-111111111111';
 
-      if (userError || !users || users.length === 0) {
-        alert('No hay usuarios registrados en la base de datos para asociar la solicitud. Registra un usuario primero.');
-        return;
-      }
-
-      const applicantId = users[0].id;
-
-      // Insertamos la solicitud usando un ID válido de tu propia tabla
       const { error } = await supabase.from('adoption_requests').insert([
         { 
           pet_id: petId, 
