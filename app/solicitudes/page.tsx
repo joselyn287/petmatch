@@ -76,6 +76,21 @@ export default function SolicitudesPage() {
     initData()
   }, [])
 
+  // Función para actualizar el estado en Supabase y en pantalla
+  const cambiarEstado = async (id: string, nuevoEstado: string) => {
+    const { error } = await supabase
+      .from('adoption_requests')
+      .update({ status: nuevoEstado })
+      .eq('id', id)
+
+    if (error) {
+      alert('Error al actualizar el estado en la base de datos')
+    } else {
+      setSolicitudes(solicitudes.map(s => s.id === id ? { ...s, status: nuevoEstado } : s))
+      alert(`Solicitud actualizada a: ${nuevoEstado}`)
+    }
+  }
+
   const isAdmin = userEmail === ADMIN_EMAIL
 
   if (loading) {
@@ -96,7 +111,7 @@ export default function SolicitudesPage() {
         </div>
 
         {isAdmin ? (
-          /* Vista exclusiva para el Administrador */
+          /* Vista exclusiva para el Administrador con botones funcionales */
           <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
             <div className="bg-green-50 border border-green-200 p-4 rounded-xl mb-6">
               <p className="text-green-800 font-bold">Modo Administrador Activo ({userEmail})</p>
@@ -108,10 +123,26 @@ export default function SolicitudesPage() {
             ) : (
               <div className="space-y-4">
                 {solicitudes.map((sol) => (
-                  <div key={sol.id} className="border border-gray-200 p-4 rounded-xl flex justify-between items-center bg-gray-50">
+                  <div key={sol.id} className="border border-gray-200 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-center bg-gray-50 gap-4">
                     <div>
                       <p className="text-sm font-bold text-gray-800">ID Solicitud: {sol.id}</p>
-                      <p className="text-xs text-gray-600">Estado actual: <span className="font-semibold text-pink-600">{sol.status || 'pendiente'}</span></p>
+                      <p className="text-xs text-gray-600 mt-1">
+                        Estado actual: <span className="font-semibold px-2 py-0.5 rounded-full bg-pink-100 text-pink-700">{sol.status || 'pendiente'}</span>
+                      </p>
+                    </div>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      <button 
+                        onClick={() => cambiarEstado(sol.id, 'aprobada')}
+                        className="flex-1 sm:flex-none bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 transition"
+                      >
+                        Aprobar
+                      </button>
+                      <button 
+                        onClick={() => cambiarEstado(sol.id, 'rechazada')}
+                        className="flex-1 sm:flex-none bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition"
+                      >
+                        Rechazar
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -119,7 +150,7 @@ export default function SolicitudesPage() {
             )}
           </div>
         ) : (
-          /* Vista para el Usuario Regular: Muestra las mascotas para solicitar adopción */
+          /* Vista para el Usuario Regular */
           <div>
             <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl mb-8">
               <p className="text-yellow-800 font-bold">Bienvenido, {userEmail || 'Usuario'}</p>
