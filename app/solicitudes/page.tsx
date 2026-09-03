@@ -1,4 +1,3 @@
-// Forzando reconstrucción de ruta solicitudes
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -18,7 +17,7 @@ interface AdoptionRequest {
   pets: {
     name: string;
     breed: string;
-  }[] | null; // <-- Cambiado a arreglo o null para coincidir con Supabase
+  }[] | null;
 }
 
 export default function SolicitudesPage() {
