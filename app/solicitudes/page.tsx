@@ -18,90 +18,100 @@ interface AdoptionRequest {
 export default function SolicitudesPage() {
   const [requests, setRequests] = useState<AdoptionRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchRequests();
   }, []);
 
-  async function fetchRequests() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('adoption_requests')
-      .select('*, pets(name, breed)')
-      .order('created_at', { ascending: false });
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      const { data, error: fetchError } = await supabase
+        .from('adoption_requests') // Asegúrate de que el nombre de tu tabla sea correcto
+        .select(`
+          id,
+          message,
+          status,
+          created_at,
+          pets (
+            name,
+            breed
+          )
+        `);
 
-    if (error) {
-      console.error('Error al cargar solicitudes:', error);
-    } else {
-      setRequests(data as unknown as AdoptionRequest[]);
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      if (data) {
+        setRequests(data as AdoptionRequest[]);
+      }
+    } catch (err: any) {
+      setError('Error al cargar las solicitudes de adopción.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }
-
-  async function updateStatus(id: string, newStatus: string) {
-    const { error } = await supabase
-      .from('adoption_requests')
-      .update({ status: newStatus })
-      .eq('id', id);
-
-    if (error) {
-      alert('Error al actualizar el estado: ' + error.message);
-    } else {
-      fetchRequests();
-    }
-  }
+  };
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
-      <header className="max-w-4xl mx-auto flex justify-between items-center mb-8 border-b pb-4">
-        <h1 className="text-3xl font-bold text-pink-600">🐾 Solicitudes de Adopción</h1>
-        <Link
-          href="/"
-          className="text-pink-600 font-semibold hover:underline"
-        >
-          ← Volver al Catálogo
-        </Link>
-      </header>
-
-      <section className="max-w-4xl mx-auto">
-        {loading ? (
-          <p className="text-center text-gray-500">Cargando solicitudes...</p>
-        ) : requests.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg shadow-sm border">
-            <p className="text-gray-500 text-lg">No hay solicitudes registradas aún.</p>
+    <div className="min-h-screen bg-slate-50 p-6 font-sans">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-pink-600">Panel de Solicitudes</h1>
+            <p className="text-sm text-slate-500">Gestiona las solicitudes de adopción de mascotas</p>
           </div>
-        ) : (
-          <div className="space-y-4">
+          <Link
+            href="/"
+            className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-300 transition"
+          >
+            Cerrar Sesión / Volver
+          </Link>
+        </div>
+
+        {loading && (
+          <div className="text-center py-10 text-slate-500">Cargando solicitudes...</div>
+        )}
+
+        {error && (
+          <div className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-600 border border-red-100">
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && requests.length === 0 && (
+          <div className="rounded-2xl bg-white p-8 text-center shadow-sm border border-slate-100">
+            <p className="text-slate-500">No hay solicitudes de adopción registradas por el momento.</p>
+          </div>
+        )}
+
+        {!loading && requests.length > 0 && (
+          <div className="grid gap-4">
             {requests.map((req) => (
-              <div key={req.id} className="bg-white p-6 rounded-xl shadow-sm border flex justify-between items-start">
+              <div key={req.id} className="rounded-xl bg-white p-6 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-800">
-                    Mascota: {req.pets?.name || 'Mascota'} <span className="text-sm font-normal text-gray-500">({req.pets?.breed})</span>
+                  <h3 className="text-lg font-semibold text-slate-800">
+                    Mascota: {req.pets?.name || 'Desconocida'} ({req.pets?.breed || 'Sin raza'})
                   </h3>
-                  <p className="text-gray-600 text-sm mt-2"><strong>Mensaje:</strong> "{req.message}"</p>
-                  <p className="text-xs text-gray-400 mt-2">
-                    Estado actual: <span className="font-semibold capitalize text-pink-600">{req.status}</span>
-                  </p>
+                  <p className="text-sm text-slate-600 mt-1">Mensaje: {req.message}</p>
+                  <span className="inline-block mt-2 text-xs text-slate-400">
+                    Fecha: {new Date(req.created_at).toLocaleDateString()}
+                  </span>
                 </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => updateStatus(req.id, 'aprobada')}
-                    className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600"
-                  >
-                    Aprobar
-                  </button>
-                  <button
-                    onClick={() => updateStatus(req.id, 'rechazada')}
-                    className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
-                  >
-                    Rechazar
-                  </button>
+                <div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    req.status === 'aprobado' ? 'bg-emerald-100 text-emerald-700' : 
+                    req.status === 'rechazado' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                  }`}>
+                    {req.status || 'Pendiente'}
+                  </span>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </section>
-    </main>
+      </div>
+    </div>
   );
 }
