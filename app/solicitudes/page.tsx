@@ -1,3 +1,4 @@
+// Forzando reconstrucción de ruta solicitudes
 'use client';
 
 import { useEffect, useState } from 'react';
