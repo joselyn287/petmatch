@@ -5,9 +5,9 @@ import { createClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-// Inicialización directa con las variables de entorno públicas
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+// Inicialización directa con las credenciales de tu proyecto de Supabase
+const supabaseUrl = 'https://brujnlgnalojjujnakmc.supabase.co'
+const supabaseAnonKey = 'sb_publishable_FgZIT0x-bOEMOgrrg9K6ww_mi2-ZTdT'
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export default function RegisterPage() {
@@ -45,7 +45,7 @@ export default function RegisterPage() {
         }, 2000)
       }
     } catch (err: any) {
-      setError('Error al conectar con el servidor. Verifica las variables de entorno.')
+      setError('Error al conectar con el servidor de autenticación.')
     } finally {
       setLoading(false)
     }
