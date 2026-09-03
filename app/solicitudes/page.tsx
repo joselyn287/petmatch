@@ -34,7 +34,7 @@ export default function SolicitudesPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
-      {/* Barra de navegación superior con opciones */}
+      {/* Barra de navegación superior con rutas funcionales */}
       <header className="bg-white border-b border-slate-200 px-6 py-4">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-8">
@@ -43,10 +43,10 @@ export default function SolicitudesPage() {
               <Link href="/solicitudes" className="text-sm font-semibold text-pink-600 border-b-2 border-pink-600 pb-1">
                 Solicitudes
               </Link>
-              <Link href="#" className="text-sm font-medium text-slate-500 hover:text-slate-800 transition">
+              <Link href="/mascotas" className="text-sm font-medium text-slate-500 hover:text-slate-800 transition">
                 Mascotas
               </Link>
-              <Link href="#" className="text-sm font-medium text-slate-500 hover:text-slate-800 transition">
+              <Link href="/usuarios" className="text-sm font-medium text-slate-500 hover:text-slate-800 transition">
                 Usuarios
               </Link>
             </nav>
