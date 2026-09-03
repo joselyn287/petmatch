@@ -16,13 +16,12 @@ export default function SolicitudesPage() {
   const fetchRequests = async () => {
     try {
       setLoading(true);
+      // Traemos todos los campos de la solicitud
       const { data, error: fetchError } = await supabase
         .from('adoption_requests')
         .select('*');
 
-      if (fetchError) {
-        throw fetchError;
-      }
+      if (fetchError) throw fetchError;
 
       if (data) {
         setRequests(data);
@@ -69,15 +68,28 @@ export default function SolicitudesPage() {
         {!loading && requests.length > 0 && (
           <div className="grid gap-4">
             {requests.map((req) => (
-              <div key={req.id} className="rounded-xl bg-white p-6 shadow-sm border border-slate-100 flex justify-between items-center">
+              <div key={req.id} className="rounded-xl bg-white p-6 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                   <h3 className="text-lg font-semibold text-slate-800">
-                    Solicitud ID: {req.id.slice(0, 8)}...
+                    Solicitud de Adopción
                   </h3>
-                  <p className="text-sm text-slate-600 mt-1">ID de Mascota: {req.pet_id}</p>
+                  <p className="text-sm text-slate-600 mt-1">
+                    <span className="font-medium">ID Mascota:</span> {req.pet_id}
+                  </p>
+                  {req.message && (
+                    <p className="text-sm text-slate-600 mt-1">
+                      <span className="font-medium">Mensaje:</span> {req.message}
+                    </p>
+                  )}
+                  <span className="inline-block mt-2 text-xs text-slate-400">
+                    ID Solicitud: {req.id}
+                  </span>
                 </div>
                 <div>
-                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    req.status === 'aprobado' ? 'bg-emerald-100 text-emerald-700' : 
+                    req.status === 'rechazado' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                  }`}>
                     {req.status || 'Pendiente'}
                   </span>
                 </div>
