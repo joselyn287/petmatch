@@ -2,13 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-
-// Configuración directa de Supabase
-const supabaseUrl = 'https://brujnlgnalojjujnakmc.supabase.co';
-const supabaseAnonKey = 'sb_publishable_FgZIT0x-bOEMOgrrg9K6ww_mi2-ZTdT';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function LoginPage() {
   const router = useRouter();
