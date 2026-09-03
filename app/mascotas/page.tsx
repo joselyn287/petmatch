@@ -15,7 +15,6 @@ export default function MascotasPage() {
   const fetchPets = async () => {
     try {
       setLoading(true);
-      // Traemos todos los campos para adaptarnos a cualquier nombre de columna
       const { data, error } = await supabase.from('pets').select('*');
       if (error) throw error;
       if (data) setPets(data);
@@ -23,6 +22,23 @@ export default function MascotasPage() {
       console.error('Error al cargar mascotas:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Función para manejar la acción de adopción
+  const handleAdopt = async (petId: string, petName: string) => {
+    const message = prompt(`¿Deseas enviar una solicitud de adopción para ${petName}? Escribe un mensaje opcional:`);
+    if (message === null) return; // Si cancela
+
+    try {
+      const { error } = await supabase.from('adoption_requests').insert([
+        { pet_id: petId, message: message || 'Hola, me encantaría adoptar a esta mascota', status: 'pendiente' }
+      ]);
+
+      if (error) throw error;
+      alert(`¡Solicitud enviada con éxito para ${petName}! Revisa el panel de Solicitudes.`);
+    } catch (err: any) {
+      alert('Error al enviar la solicitud: ' + err.message);
     }
   };
 
@@ -43,7 +59,7 @@ export default function MascotasPage() {
       </header>
       <main className="max-w-4xl mx-auto p-6">
         <h2 className="text-2xl font-bold text-slate-800 mb-2">Panel de Mascotas</h2>
-        <p className="text-sm text-slate-500 mb-6">Administra el catálogo de mascotas disponibles</p>
+        <p className="text-sm text-slate-500 mb-6">Administra el catálogo y genera solicitudes de adopción</p>
         
         {loading ? (
           <p className="text-slate-500">Cargando mascotas...</p>
@@ -52,32 +68,40 @@ export default function MascotasPage() {
         ) : (
           <div className="grid gap-4">
             {pets.map((pet) => {
-              // Buscamos dinámicamente el campo de imagen y de especie/tipo sin importar cómo se llamen en tu BD
               const petImage = pet.image || pet.image_url || pet.photo || pet.foto;
               const petSpecies = pet.species || pet.tipo || pet.breed || pet.raza;
 
               return (
-                <div key={pet.id} className="bg-white p-4 rounded-xl border border-slate-100 flex items-center gap-4 shadow-sm">
-                  {/* Imagen de la mascota si existe */}
-                  {petImage ? (
-                    <img 
-                      src={petImage} 
-                      alt={pet.name || 'Mascota'} 
-                      className="w-20 h-20 object-cover rounded-lg border border-slate-200"
-                    />
-                  ) : (
-                    <div className="w-20 h-20 bg-slate-100 rounded-lg flex items-center justify-center text-xs text-slate-400">
-                      Sin foto
+                <div key={pet.id} className="bg-white p-4 rounded-xl border border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm">
+                  <div className="flex items-center gap-4">
+                    {petImage ? (
+                      <img 
+                        src={petImage} 
+                        alt={pet.name || 'Mascota'} 
+                        className="w-20 h-20 object-cover rounded-lg border border-slate-200"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 bg-slate-100 rounded-lg flex items-center justify-center text-xs text-slate-400">
+                        Sin foto
+                      </div>
+                    )}
+                    
+                    <div>
+                      <h3 className="font-bold text-lg text-slate-800">{pet.name || 'Mascota sin nombre'}</h3>
+                      <p className="text-sm text-slate-500">
+                        <span className="font-medium">Detalle:</span> {petSpecies || 'No especificado'}
+                      </p>
+                      <span className="text-xs text-slate-400">ID: {pet.id}</span>
                     </div>
-                  )}
-                  
-                  <div>
-                    <h3 className="font-bold text-lg text-slate-800">{pet.name || 'Mascota sin nombre'}</h3>
-                    <p className="text-sm text-slate-500">
-                      <span className="font-medium">Detalle:</span> {petSpecies || 'No especificado'}
-                    </p>
-                    <span className="text-xs text-slate-400">ID: {pet.id}</span>
                   </div>
+
+                  {/* Botón para adoptar */}
+                  <button
+                    onClick={() => handleAdopt(pet.id, pet.name || 'Mascota')}
+                    className="w-full sm:w-auto bg-pink-600 hover:bg-pink-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition shadow-sm"
+                  >
+                    Adoptar / Solicitar
+                  </button>
                 </div>
               );
             })}
