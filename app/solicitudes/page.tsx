@@ -1,3 +1,4 @@
+'html'
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -25,6 +26,7 @@ interface UsuarioPerfil {
 
 export default function SolicitudesPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
   const [usuarios, setUsuarios] = useState<UsuarioPerfil[]>([])
   const [mascotas, setMascotas] = useState<Mascota[]>([])
@@ -44,6 +46,7 @@ export default function SolicitudesPage() {
     async function initData() {
       const { data: { session } } = await supabase.auth.getSession()
       setUserEmail(session?.user?.email || null)
+      setUserId(session?.user?.id || null)
 
       // Cargar solicitudes
       const { data: solData } = await supabase.from('adoption_requests').select('*')
@@ -58,7 +61,6 @@ export default function SolicitudesPage() {
       if (petsData && petsData.length > 0) {
         setMascotas(petsData)
       } else {
-        // Si está vacía, insertamos una por defecto en la BD
         const defaultPet = {
           nombre: 'Max',
           especie: 'Perro (Golden Retriever)',
@@ -91,11 +93,15 @@ export default function SolicitudesPage() {
   const handleCrearMascotaReal = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const nuevaMascota = {
+    const nuevaMascota: any = {
       nombre: nombreNueva,
       especie: especieNueva,
       edad: edadNueva,
       imagen: imagenNueva.trim() !== '' ? imagenNueva : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'
+    }
+
+    if (userId) {
+      nuevaMascota.user_id = userId
     }
 
     const { data, error } = await supabase.from('pets').insert([nuevaMascota]).select()
