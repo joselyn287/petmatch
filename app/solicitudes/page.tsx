@@ -23,28 +23,11 @@ interface UsuarioPerfil {
   email?: string
 }
 
-const mascotasIniciales: Mascota[] = [
-  {
-    id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    nombre: 'Max',
-    especie: 'Perro (Golden Retriever)',
-    edad: '2 años',
-    imagen: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80'
-  },
-  {
-    id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22',
-    nombre: 'Luna',
-    especie: 'Gato (Siamés)',
-    edad: '1 año',
-    imagen: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80'
-  }
-]
-
 export default function SolicitudesPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
   const [usuarios, setUsuarios] = useState<UsuarioPerfil[]>([])
-  const [mascotas, setMascotas] = useState<Mascota[]>(mascotasIniciales)
+  const [mascotas, setMascotas] = useState<Mascota[]>([])
   const [loading, setLoading] = useState(true)
 
   // Estados para registrar nueva mascota
@@ -62,20 +45,28 @@ export default function SolicitudesPage() {
       const { data: { session } } = await supabase.auth.getSession()
       setUserEmail(session?.user?.email || null)
 
+      // Cargar solicitudes
       const { data: solData } = await supabase.from('adoption_requests').select('*')
       if (solData) setSolicitudes(solData)
 
+      // Cargar perfiles
       const { data: profileData } = await supabase.from('profiles').select('*')
       if (profileData) setUsuarios(profileData)
 
-      // Cargamos mascotas guardadas previamente en este navegador si existen
-      const savedPets = localStorage.getItem('petmatch_mascotas')
-      if (savedPets) {
-        try {
-          setMascotas(JSON.parse(savedPets))
-        } catch (e) {
-          console.error(e)
+      // Cargar mascotas reales desde la base de datos Supabase
+      const { data: petsData } = await supabase.from('pets').select('*')
+      if (petsData && petsData.length > 0) {
+        setMascotas(petsData)
+      } else {
+        // Si está vacía, insertamos una por defecto en la BD
+        const defaultPet = {
+          nombre: 'Max',
+          especie: 'Perro (Golden Retriever)',
+          edad: '2 años',
+          imagen: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80'
         }
+        const { data: inserted } = await supabase.from('pets').insert([defaultPet]).select()
+        if (inserted) setMascotas(inserted)
       }
 
       setLoading(false)
@@ -97,27 +88,29 @@ export default function SolicitudesPage() {
     }
   }
 
-  const handleCrearMascota = (e: React.FormEvent) => {
+  const handleCrearMascotaReal = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const nuevaMascota: Mascota = {
-      id: 'pet-' + Date.now(),
+    const nuevaMascota = {
       nombre: nombreNueva,
       especie: especieNueva,
       edad: edadNueva,
-      imagen: imagenNueva.startsWith('http') ? imagenNueva : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'
+      imagen: imagenNueva.trim() !== '' ? imagenNueva : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'
     }
 
-    const nuevasListas = [...mascotas, nuevaMascota]
-    setMascotas(nuevasListas)
-    localStorage.setItem('petmatch_mascotas', JSON.stringify(nuevasListas))
+    const { data, error } = await supabase.from('pets').insert([nuevaMascota]).select()
 
-    alert('¡Mascota registrada con éxito y agregada al catálogo!')
-    setNombreNueva('')
-    setEspecieNueva('')
-    setEdadNueva('')
-    setImagenNueva('')
-    setAdminTab('solicitudes')
+    if (error) {
+      alert('Error al guardar en Supabase: ' + error.message)
+    } else if (data && data.length > 0) {
+      alert('¡Mascota registrada y guardada en Supabase con éxito!')
+      setMascotas([...mascotas, data[0]])
+      setNombreNueva('')
+      setEspecieNueva('')
+      setEdadNueva('')
+      setImagenNueva('')
+      setAdminTab('solicitudes')
+    }
   }
 
   const isAdmin = userEmail === ADMIN_EMAIL
@@ -142,7 +135,7 @@ export default function SolicitudesPage() {
           <div>
             <div className="bg-green-50 border border-green-200 p-4 rounded-xl mb-6">
               <p className="text-green-800 font-bold">Modo Administrador Activo ({userEmail})</p>
-              <p className="text-sm text-green-600">Gestiona las solicitudes, usuarios o registra nuevas mascotas.</p>
+              <p className="text-sm text-green-600">Base de datos conectada: gestiona solicitudes y registra mascotas reales.</p>
             </div>
 
             <div className="flex flex-wrap gap-3 mb-6 border-b border-gray-200 pb-3">
@@ -162,7 +155,7 @@ export default function SolicitudesPage() {
                 onClick={() => setAdminTab('crearMascota')}
                 className={`px-4 py-2 rounded-xl font-semibold text-sm transition ${adminTab === 'crearMascota' ? 'bg-pink-600 text-white shadow' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
               >
-                + Registrar Nueva Mascota
+                + Registrar Mascota Real
               </button>
             </div>
 
@@ -177,7 +170,8 @@ export default function SolicitudesPage() {
                       <div key={sol.id} className="border border-gray-200 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-center bg-gray-50 gap-4">
                         <div>
                           <p className="text-sm font-bold text-gray-800">ID Solicitud: {sol.id}</p>
-                          <p className="text-xs text-gray-600 mt-1">Estado: <span className="font-semibold text-pink-600 uppercase">{sol.status || 'pendiente'}</span></p>
+                          <p className="text-xs text-gray-600 mt-1">Mascota ID: {sol.pet_id || 'N/A'}</p>
+                          <p className="text-xs text-gray-600">Estado: <span className="font-semibold text-pink-600 uppercase">{sol.status || 'pendiente'}</span></p>
                         </div>
                         <div className="flex gap-2 w-full sm:w-auto">
                           <button 
@@ -220,8 +214,8 @@ export default function SolicitudesPage() {
 
             {adminTab === 'crearMascota' && (
               <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 max-w-xl mx-auto">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Registrar Nueva Mascota</h2>
-                <form onSubmit={handleCrearMascota} className="space-y-4">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Registrar Nueva Mascota en Base de Datos</h2>
+                <form onSubmit={handleCrearMascotaReal} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la mascota</label>
                     <input 
@@ -269,7 +263,7 @@ export default function SolicitudesPage() {
                     type="submit"
                     className="w-full bg-pink-600 text-white py-2.5 rounded-lg font-semibold hover:bg-pink-700 transition shadow"
                   >
-                    Guardar Mascota
+                    Guardar Mascota en Supabase
                   </button>
                 </form>
               </div>
@@ -280,7 +274,7 @@ export default function SolicitudesPage() {
           <div>
             <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl mb-8">
               <p className="text-yellow-800 font-bold">Bienvenido, {userEmail || 'Usuario'}</p>
-              <p className="text-sm text-yellow-700">Explora las mascotas disponibles y envía tu solicitud de adopción.</p>
+              <p className="text-sm text-yellow-700">Explora las mascotas disponibles en la base de datos y envía tu solicitud.</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -302,7 +296,7 @@ export default function SolicitudesPage() {
                       onClick={async () => {
                         const { error } = await supabase.from('adoption_requests').insert([
                           { 
-                            pet_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 
+                            pet_id: mascota.id, 
                             status: 'pendiente' 
                           }
                         ])
