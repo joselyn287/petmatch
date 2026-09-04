@@ -308,12 +308,17 @@ export default function SolicitudesPage() {
                     
                     <button 
                       onClick={async () => {
-                        const payload: any = { status: 'pendiente' }
-                        if (mascota.id.includes('-')) {
-                          payload.pet_id = mascota.id
-                        }
+                        // Usamos un UUID genérico si es mascota de ejemplo para cumplir con el not-null constraint de Supabase
+                        const validPetId = mascota.id.includes('-') 
+                          ? mascota.id 
+                          : '00000000-0000-0000-0000-000000000000'
 
-                        const { error } = await supabase.from('adoption_requests').insert([payload])
+                        const { error } = await supabase.from('adoption_requests').insert([
+                          { 
+                            pet_id: validPetId, 
+                            status: 'pendiente' 
+                          }
+                        ])
 
                         if (error) {
                           alert('Error al enviar la solicitud: ' + error.message)
