@@ -26,21 +26,21 @@ interface UsuarioPerfil {
 
 const mascotasEjemplo: Mascota[] = [
   {
-    id: '1',
+    id: 'a0000000-0000-0000-0000-000000000001',
     nombre: 'Max',
     especie: 'Perro (Golden Retriever)',
     edad: '2 años',
     imagen: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80'
   },
   {
-    id: '2',
+    id: 'a0000000-0000-0000-0000-000000000002',
     nombre: 'Luna',
     especie: 'Gato (Siamés)',
     edad: '1 año',
     imagen: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80'
   },
   {
-    id: '3',
+    id: 'a0000000-0000-0000-0000-000000000003',
     nombre: 'Rocky',
     especie: 'Perro (Bulldog Francés)',
     edad: '3 años',
@@ -50,13 +50,11 @@ const mascotasEjemplo: Mascota[] = [
 
 export default function SolicitudesPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [mascotas, setMascotas] = useState<Mascota[]>([])
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
   const [usuarios, setUsuarios] = useState<UsuarioPerfil[]>([])
   const [loading, setLoading] = useState(true)
 
-  const [adminTab, setAdminTab] = useState<'solicitudes' | 'mascotas' | 'usuarios'>('solicitudes')
-  const [nuevaMascota, setNuevaMascota] = useState({ nombre: '', especie: '', edad: '', imagen: '' })
+  const [adminTab, setAdminTab] = useState<'solicitudes' | 'usuarios'>('solicitudes')
 
   const ADMIN_EMAIL = 'andrea.delgado499@gmail.com'
 
@@ -64,13 +62,6 @@ export default function SolicitudesPage() {
     async function initData() {
       const { data: { session } } = await supabase.auth.getSession()
       setUserEmail(session?.user?.email || null)
-
-      const { data: petData, error: petError } = await supabase.from('mascotas').select('*')
-      if (petError || !petData || petData.length === 0) {
-        setMascotas(mascotasEjemplo)
-      } else {
-        setMascotas(petData)
-      }
 
       const { data: solData } = await supabase.from('adoption_requests').select('*')
       if (solData) setSolicitudes(solData)
@@ -97,19 +88,6 @@ export default function SolicitudesPage() {
     }
   }
 
-  const handleCrearMascota = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const { error } = await supabase.from('mascotas').insert([nuevaMascota])
-    if (error) {
-      alert('Error al registrar la mascota: ' + error.message)
-    } else {
-      alert('¡Mascota registrada con éxito!')
-      setNuevaMascota({ nombre: '', especie: '', edad: '', imagen: '' })
-      const { data } = await supabase.from('mascotas').select('*')
-      if (data) setMascotas(data)
-    }
-  }
-
   const isAdmin = userEmail === ADMIN_EMAIL
 
   if (loading) {
@@ -132,7 +110,7 @@ export default function SolicitudesPage() {
           <div>
             <div className="bg-green-50 border border-green-200 p-4 rounded-xl mb-6">
               <p className="text-green-800 font-bold">Modo Administrador Activo ({userEmail})</p>
-              <p className="text-sm text-green-600">Gestiona solicitudes, ingresa nuevas mascotas y revisa usuarios.</p>
+              <p className="text-sm text-green-600">Gestiona las solicitudes de adopción y revisa los usuarios.</p>
             </div>
 
             <div className="flex gap-4 mb-6 border-b border-gray-200 pb-3">
@@ -141,12 +119,6 @@ export default function SolicitudesPage() {
                 className={`px-4 py-2 rounded-xl font-semibold text-sm transition ${adminTab === 'solicitudes' ? 'bg-pink-600 text-white shadow' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
               >
                 Solicitudes de Adopción
-              </button>
-              <button
-                onClick={() => setAdminTab('mascotas')}
-                className={`px-4 py-2 rounded-xl font-semibold text-sm transition ${adminTab === 'mascotas' ? 'bg-pink-600 text-white shadow' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
-              >
-                Ingresar Mascota
               </button>
               <button
                 onClick={() => setAdminTab('usuarios')}
@@ -191,63 +163,6 @@ export default function SolicitudesPage() {
               </div>
             )}
 
-            {adminTab === 'mascotas' && (
-              <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 max-w-xl mx-auto">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Agregar Nueva Mascota al Catálogo</h2>
-                <form onSubmit={handleCrearMascota} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Nombre</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={nuevaMascota.nombre}
-                      onChange={(e) => setNuevaMascota({ ...nuevaMascota, nombre: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500"
-                      placeholder="Ej. Bobby"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Especie / Raza</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={nuevaMascota.especie}
-                      onChange={(e) => setNuevaMascota({ ...nuevaMascota, especie: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500"
-                      placeholder="Ej. Perro (Labrador)"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Edad</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={nuevaMascota.edad}
-                      onChange={(e) => setNuevaMascota({ ...nuevaMascota, edad: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500"
-                      placeholder="Ej. 1 año"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">URL de la Imagen</label>
-                    <input 
-                      type="url" 
-                      value={nuevaMascota.imagen}
-                      onChange={(e) => setNuevaMascota({ ...nuevaMascota, imagen: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500"
-                      placeholder="https://images.unsplash.com/..."
-                    />
-                  </div>
-                  <button 
-                    type="submit"
-                    className="w-full bg-pink-600 text-white py-2.5 rounded-xl font-semibold hover:bg-pink-700 transition shadow"
-                  >
-                    Guardar Mascota
-                  </button>
-                </form>
-              </div>
-            )}
-
             {adminTab === 'usuarios' && (
               <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
                 <h2 className="text-xl font-bold text-gray-800 mb-4">Usuarios Registrados</h2>
@@ -275,7 +190,7 @@ export default function SolicitudesPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {mascotas.map((mascota) => (
+              {mascotasEjemplo.map((mascota) => (
                 <div key={mascota.id} className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100 flex flex-col hover:shadow-lg transition">
                   {mascota.imagen ? (
                     <img src={mascota.imagen} alt={mascota.nombre} className="h-52 w-full object-cover" />
@@ -291,27 +206,10 @@ export default function SolicitudesPage() {
                     
                     <button 
                       onClick={async () => {
-                        let finalPetId = mascota.id
-
-                        // Si es una mascota de ejemplo ('1', '2', '3'), la registramos primero en Supabase para obtener un UUID real
-                        if (!mascota.id.includes('-')) {
-                          const { data: newPet, error: insertError } = await supabase
-                            .from('mascotas')
-                            .insert([{ nombre: mascota.nombre, especie: mascota.especie, edad: mascota.edad, imagen: mascota.imagen }])
-                            .select('*')
-                            .single()
-
-                          if (insertError || !newPet) {
-                            alert('Error al preparar la mascota: ' + (insertError?.message || 'Desconocido'))
-                            return
-                          }
-                          finalPetId = newPet.id
-                        }
-
-                        // Ahora enviamos la solicitud usando el UUID válido que sí satisface la base de datos
+                        // Enviamos un UUID válido que cumple el formato de Supabase sin requerir tabla externa de mascotas
                         const { error } = await supabase.from('adoption_requests').insert([
                           { 
-                            pet_id: finalPetId, 
+                            pet_id: mascota.id, 
                             status: 'pendiente' 
                           }
                         ])
