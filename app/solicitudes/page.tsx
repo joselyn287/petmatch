@@ -27,10 +27,10 @@ export default function SolicitudesPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
   const [usuarios, setUsuarios] = useState<UsuarioPerfil[]>([])
-  const [mascotasBD, setMascotasBD] = useState<Mascota[]>([])
+  const [mascotas, setMascotas] = useState<Mascota[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Estados para el formulario de crear mascota nueva
+  // Estados para el formulario de registrar mascota real
   const [nombreNueva, setNombreNueva] = useState('')
   const [especieNueva, setEspecieNueva] = useState('')
   const [edadNueva, setEdadNueva] = useState('')
@@ -51,13 +51,20 @@ export default function SolicitudesPage() {
       const { data: profileData } = await supabase.from('profiles').select('*')
       if (profileData) setUsuarios(profileData)
 
-      // Intentamos cargar las mascotas desde la base de datos real
-      const { data: petsData } = await supabase.from('pets').select('*')
+      // Consultamos la tabla pets de Supabase y adaptamos los campos por si están en inglés
+      const { data: petsData, error } = await supabase.from('pets').select('*')
       if (petsData && petsData.length > 0) {
-        setMascotasBD(petsData)
+        const mascotasMapeadas: Mascota[] = petsData.map((p: any) => ({
+          id: p.id,
+          nombre: p.nombre || p.name || 'Sin nombre',
+          especie: p.especie || p.species || p.breed || 'Mestizo',
+          edad: p.edad || p.age || 'No especificada',
+          imagen: p.imagen || p.image || p.image_url || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'
+        }))
+        setMascotas(mascotasMapeadas)
       } else {
-        // Si la tabla pets está vacía, dejamos unas por defecto para que no se vea vacío
-        setMascotasBD([
+        // Datos por defecto si está vacía
+        setMascotas([
           {
             id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
             nombre: 'Max',
@@ -87,29 +94,47 @@ export default function SolicitudesPage() {
     }
   }
 
-  const handleCrearMascota = async (e: React.FormEvent) => {
+  const handleCrearMascotaReal = async (e: React.FormEvent) => {
     e.preventDefault()
-    const { data, error } = await supabase.from('pets').insert([
-      {
-        nombre: nombreNueva,
-        especie: especieNueva,
-        edad: edadNueva,
-        imagen: imagenNueva || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'
-      }
-    ]).select()
+    
+    const nuevaImagen = imagenNueva || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'
 
-    if (error) {
-      alert('Error al crear la mascota en la base de datos: ' + error.message)
-    } else {
-      alert('¡Mascota agregada con éxito!')
-      if (data) {
-        setMascotasBD([...mascotasBD, data[0]])
+    // Intentamos insertar cubriendo tanto nombres en español como en inglés para evitar errores de columnas
+    const payloadVariantes = [
+      { nombre: nombreNueva, especie: especieNueva, edad: edadNueva, imagen: nuevaImagen },
+      { name: nombreNueva, species: especieNueva, age: edadNueva, image_url: nuevaImagen },
+      { name: nombreNueva, breed: especieNueva, age: edadNueva, image: nuevaImagen }
+    ]
+
+    let insertOk = false
+    let mascotaCreada: Mascota | null = null
+
+    for (const payload of payloadVariantes) {
+      const { data, error } = await supabase.from('pets').insert([payload]).select()
+      if (!error && data && data.length > 0) {
+        const p = data[0]
+        mascotaCreada = {
+          id: p.id,
+          nombre: p.nombre || p.name || nombreNueva,
+          especie: p.especie || p.species || p.breed || especieNueva,
+          edad: p.edad || p.age || edadNueva,
+          imagen: p.imagen || p.image || p.image_url || nuevaImagen
+        }
+        insertOk = true
+        break
       }
+    }
+
+    if (insertOk && mascotaCreada) {
+      alert('¡Mascota registrada y guardada en la base de datos con éxito!')
+      setMascotas([...mascotas, mascotaCreada])
       setNombreNueva('')
       setEspecieNueva('')
       setEdadNueva('')
       setImagenNueva('')
       setAdminTab('solicitudes')
+    } else {
+      alert('Error al registrar en Supabase. Revisa que la tabla "pets" tenga columnas compatibles (ej: nombre/name, especie/species, edad/age).')
     }
   }
 
@@ -135,7 +160,7 @@ export default function SolicitudesPage() {
           <div>
             <div className="bg-green-50 border border-green-200 p-4 rounded-xl mb-6">
               <p className="text-green-800 font-bold">Modo Administrador Activo ({userEmail})</p>
-              <p className="text-sm text-green-600">Gestiona las solicitudes, usuarios o agrega nuevas mascotas reales.</p>
+              <p className="text-sm text-green-600">Gestiona las solicitudes, usuarios o registra mascotas reales en la base de datos.</p>
             </div>
 
             <div className="flex flex-wrap gap-3 mb-6 border-b border-gray-200 pb-3">
@@ -155,7 +180,7 @@ export default function SolicitudesPage() {
                 onClick={() => setAdminTab('crearMascota')}
                 className={`px-4 py-2 rounded-xl font-semibold text-sm transition ${adminTab === 'crearMascota' ? 'bg-pink-600 text-white shadow' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
               >
-                + Agregar Mascota Real
+                + Registrar Mascota Real
               </button>
             </div>
 
@@ -214,8 +239,8 @@ export default function SolicitudesPage() {
 
             {adminTab === 'crearMascota' && (
               <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 max-w-xl mx-auto">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Registrar Nueva Mascota</h2>
-                <form onSubmit={handleCrearMascota} className="space-y-4">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Registrar Nueva Mascota en Base de Datos</h2>
+                <form onSubmit={handleCrearMascotaReal} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la mascota</label>
                     <input 
@@ -224,7 +249,7 @@ export default function SolicitudesPage() {
                       value={nombreNueva} 
                       onChange={(e) => setNombreNueva(e.target.value)}
                       className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
-                      placeholder="Ej. Bobby"
+                      placeholder="Ej. Ayla"
                     />
                   </div>
                   <div>
@@ -235,7 +260,7 @@ export default function SolicitudesPage() {
                       value={especieNueva} 
                       onChange={(e) => setEspecieNueva(e.target.value)}
                       className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
-                      placeholder="Ej. Perro (Pastor Alemán)"
+                      placeholder="Ej. Chiguagua"
                     />
                   </div>
                   <div>
@@ -246,7 +271,7 @@ export default function SolicitudesPage() {
                       value={edadNueva} 
                       onChange={(e) => setEdadNueva(e.target.value)}
                       className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
-                      placeholder="Ej. 1 año y medio"
+                      placeholder="Ej. 3 meses"
                     />
                   </div>
                   <div>
@@ -263,7 +288,7 @@ export default function SolicitudesPage() {
                     type="submit"
                     className="w-full bg-pink-600 text-white py-2.5 rounded-lg font-semibold hover:bg-pink-700 transition shadow"
                   >
-                    Guardar Mascota en Base de Datos
+                    Guardar Mascota en Supabase
                   </button>
                 </form>
               </div>
@@ -278,7 +303,7 @@ export default function SolicitudesPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {mascotasBD.map((mascota) => (
+              {mascotas.map((mascota) => (
                 <div key={mascota.id} className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100 flex flex-col hover:shadow-lg transition">
                   {mascota.imagen ? (
                     <img src={mascota.imagen} alt={mascota.nombre} className="h-52 w-full object-cover" />
@@ -294,7 +319,7 @@ export default function SolicitudesPage() {
                     
                     <button 
                       onClick={async () => {
-                        // Enviamos el ID real de la mascota de la base de datos
+                        // Enviamos el ID real de la mascota seleccionada hacia la base de datos
                         const { error } = await supabase.from('adoption_requests').insert([
                           { 
                             pet_id: mascota.id, 
