@@ -25,21 +25,21 @@ interface UsuarioPerfil {
 
 const mascotasEjemplo: Mascota[] = [
   {
-    id: '1',
+    id: 'Max',
     nombre: 'Max',
     especie: 'Perro (Golden Retriever)',
     edad: '2 años',
     imagen: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80'
   },
   {
-    id: '2',
+    id: 'Luna',
     nombre: 'Luna',
     especie: 'Gato (Siamés)',
     edad: '1 año',
     imagen: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80'
   },
   {
-    id: '3',
+    id: 'Rocky',
     nombre: 'Rocky',
     especie: 'Perro (Bulldog Francés)',
     edad: '3 años',
@@ -138,7 +138,7 @@ export default function SolicitudesPage() {
                       <div key={sol.id} className="border border-gray-200 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-center bg-gray-50 gap-4">
                         <div>
                           <p className="text-sm font-bold text-gray-800">ID Solicitud: {sol.id}</p>
-                          <p className="text-xs text-gray-600 mt-1">Mascota ID: {sol.pet_id || 'General'}</p>
+                          <p className="text-xs text-gray-600 mt-1">Mascota: {sol.pet_id || 'General'}</p>
                           <p className="text-xs text-gray-600">Estado: <span className="font-semibold text-pink-600 uppercase">{sol.status || 'pendiente'}</span></p>
                         </div>
                         <div className="flex gap-2 w-full sm:w-auto">
@@ -205,9 +205,10 @@ export default function SolicitudesPage() {
                     
                     <button 
                       onClick={async () => {
-                        // Enviamos solo el status para evitar por completo el conflicto de llave foránea con pet_id
+                        // Enviamos el nombre de la mascota como pet_id para satisfacer la restricción not-null
                         const { error } = await supabase.from('adoption_requests').insert([
                           { 
+                            pet_id: mascota.nombre, 
                             status: 'pendiente' 
                           }
                         ])
