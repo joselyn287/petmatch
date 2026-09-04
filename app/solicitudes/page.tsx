@@ -55,10 +55,7 @@ export default function SolicitudesPage() {
   const [usuarios, setUsuarios] = useState<UsuarioPerfil[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Pestañas del panel de administración: 'solicitudes' | 'mascotas' | 'usuarios'
   const [adminTab, setAdminTab] = useState<'solicitudes' | 'mascotas' | 'usuarios'>('solicitudes')
-
-  // Formulario para registrar nueva mascota
   const [nuevaMascota, setNuevaMascota] = useState({ nombre: '', especie: '', edad: '', imagen: '' })
 
   const ADMIN_EMAIL = 'andrea.delgado499@gmail.com'
@@ -68,33 +65,32 @@ export default function SolicitudesPage() {
       const { data: { session } } = await supabase.auth.getSession()
       setUserEmail(session?.user?.email || null)
 
-      // Cargar mascotas
-      const { data: petData, error: petError } = await supabase.from('mascotas').select('*')
-      if (petError || !petData || petData.length === 0) {
-        setMascotas(mascotasEjemplo)
+      // Cargar mascotas reales de Supabase
+      let { data: petData } = await supabase.from('mascotas').select('*')
+      
+      if (!petData || petData.length === 0) {
+        // Si no hay mascotas, insertamos las de ejemplo para que tengan IDs reales en la BD
+        const { data: insertedPets } = await supabase
+          .from('mascotas')
+          .insert(mascotasEjemplo.map(({ id, ...rest }) => rest)) // Quitamos el ID estático para que Supabase genere un UUID real
+          .select('*')
+        
+        setMascotas(insertedPets || mascotasEjemplo)
       } else {
         setMascotas(petData)
       }
 
-      // Cargar solicitudes pendientes (o eliminarlas de vista al gestionar)
-      const { data: solData, error: solError } = await supabase.from('adoption_requests').select('*')
-      if (!solError && solData) {
-        // Filtramos para que solo muestre las que estén pendientes si deseas que desaparezcan al aprobar/rechazar
-        setSolicitudes(solData)
-      }
+      const { data: solData } = await supabase.from('adoption_requests').select('*')
+      if (solData) setSolicitudes(solData)
 
-      // Cargar perfiles o usuarios si existe la tabla 'profiles'
       const { data: profileData } = await supabase.from('profiles').select('*')
-      if (profileData) {
-        setUsuarios(profileData)
-      }
+      if (profileData) setUsuarios(profileData)
 
       setLoading(false)
     }
     initData()
   }, [])
 
-  // Al aprobar o rechazar, borramos el registro de la lista visible para que desaparezca
   const gestionarSolicitud = async (id: string, accion: 'aprobada' | 'rechazada') => {
     const { error } = await supabase
       .from('adoption_requests')
@@ -102,14 +98,13 @@ export default function SolicitudesPage() {
       .eq('id', id)
 
     if (error) {
-      alert('Error al actualizar la solicitud en la base de datos.')
+      alert('Error al actualizar la solicitud.')
     } else {
       setSolicitudes(solicitudes.filter(s => s.id !== id))
       alert(`Solicitud ${accion} exitosamente.`)
     }
   }
 
-  // Función para registrar una mascota nueva desde el panel de admin
   const handleCrearMascota = async (e: React.FormEvent) => {
     e.preventDefault()
     const { error } = await supabase.from('mascotas').insert([nuevaMascota])
@@ -118,7 +113,6 @@ export default function SolicitudesPage() {
     } else {
       alert('¡Mascota registrada con éxito!')
       setNuevaMascota({ nombre: '', especie: '', edad: '', imagen: '' })
-      // Recargar mascotas
       const { data } = await supabase.from('mascotas').select('*')
       if (data) setMascotas(data)
     }
@@ -146,10 +140,9 @@ export default function SolicitudesPage() {
           <div>
             <div className="bg-green-50 border border-green-200 p-4 rounded-xl mb-6">
               <p className="text-green-800 font-bold">Modo Administrador Activo ({userEmail})</p>
-              <p className="text-sm text-green-600">Gestiona solicitudes, ingresa nuevas mascotas y revisa usuarios registrados.</p>
+              <p className="text-sm text-green-600">Gestiona solicitudes, ingresa nuevas mascotas y revisa usuarios.</p>
             </div>
 
-            {/* Pestañas de navegación del Administrador */}
             <div className="flex gap-4 mb-6 border-b border-gray-200 pb-3">
               <button
                 onClick={() => setAdminTab('solicitudes')}
@@ -171,7 +164,6 @@ export default function SolicitudesPage() {
               </button>
             </div>
 
-            {/* Contenido según la pestaña activa */}
             {adminTab === 'solicitudes' && (
               <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
                 <h2 className="text-xl font-bold text-gray-800 mb-4">Solicitudes Recibidas</h2>
@@ -266,9 +258,9 @@ export default function SolicitudesPage() {
 
             {adminTab === 'usuarios' && (
               <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Usuarios Registrados en el Sistema</h2>
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Usuarios Registrados</h2>
                 {usuarios.length === 0 ? (
-                  <p className="text-gray-500 italic py-4">No hay perfiles de usuario adicionales registrados en la tabla.</p>
+                  <p className="text-gray-500 italic py-4">No hay perfiles adicionales registrados.</p>
                 ) : (
                   <div className="space-y-3">
                     {usuarios.map((usr) => (
@@ -284,7 +276,6 @@ export default function SolicitudesPage() {
 
           </div>
         ) : (
-          /* Vista de Usuario Regular */
           <div>
             <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl mb-8">
               <p className="text-yellow-800 font-bold">Bienvenido, {userEmail || 'Usuario'}</p>
@@ -308,14 +299,9 @@ export default function SolicitudesPage() {
                     
                     <button 
                       onClick={async () => {
-                        // Usamos un UUID genérico si es mascota de ejemplo para cumplir con el not-null constraint de Supabase
-                        const validPetId = mascota.id.includes('-') 
-                          ? mascota.id 
-                          : '00000000-0000-0000-0000-000000000000'
-
                         const { error } = await supabase.from('adoption_requests').insert([
                           { 
-                            pet_id: validPetId, 
+                            pet_id: mascota.id, 
                             status: 'pendiente' 
                           }
                         ])
