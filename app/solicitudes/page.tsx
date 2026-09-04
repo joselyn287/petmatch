@@ -15,85 +15,311 @@ interface Mascota {
   url?: string
 }
 
+interface Solicitud {
+  id: string
+  pet_id?: string
+  status?: string
+}
+
+interface UsuarioPerfil {
+  id: string
+  email?: string
+}
+
 export default function SolicitudesPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
+  const [usuarios, setUsuarios] = useState<UsuarioPerfil[]>([])
   const [mascotas, setMascotas] = useState<Mascota[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Estados para registrar nueva mascota
+  const [nombreNueva, setNombreNueva] = useState('')
+  const [especieNueva, setEspecieNueva] = useState('')
+  const [edadNueva, setEdadNueva] = useState('')
+  const [imagenNueva, setImagenNueva] = useState('')
+
+  const [adminTab, setAdminTab] = useState<'solicitudes' | 'usuarios' | 'crearMascota'>('solicitudes')
+
+  const ADMIN_EMAIL = 'andrea.delgado499@gmail.com'
 
   useEffect(() => {
     async function initData() {
       const { data: { session } } = await supabase.auth.getSession()
       setUserEmail(session?.user?.email || null)
+      setUserId(session?.user?.id || null)
 
+      // Cargar solicitudes
+      const { data: solData } = await supabase.from('adoption_requests').select('*')
+      if (solData) setSolicitudes(solData)
+
+      // Cargar perfiles
+      const { data: profileData } = await supabase.from('profiles').select('*')
+      if (profileData) setUsuarios(profileData)
+
+      // Cargar mascotas
       const { data: petsData } = await supabase.from('pets').select('*')
       if (petsData && petsData.length > 0) {
         setMascotas(petsData)
       }
+
       setLoading(false)
     }
     initData()
   }, [])
 
+  const gestionarSolicitud = async (id: string, accion: 'aprobada' | 'rechazada') => {
+    const { error } = await supabase
+      .from('adoption_requests')
+      .update({ status: accion })
+      .eq('id', id)
+
+    if (error) {
+      alert('Error al actualizar la solicitud.')
+    } else {
+      setSolicitudes(solicitudes.filter(s => s.id !== id))
+      alert(`Solicitud ${accion} exitosamente.`)
+    }
+  }
+
+  const handleCrearMascotaReal = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    const nuevaMascota: any = {
+      nombre: nombreNueva,
+      name: nombreNueva,
+      especie: especieNueva,
+      edad: edadNueva,
+      imagen: imagenNueva.trim() !== '' ? imagenNueva : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'
+    }
+
+    if (userId) {
+      nuevaMascota.user_id = userId
+    }
+
+    const { data, error } = await supabase.from('pets').insert([nuevaMascota]).select()
+
+    if (error) {
+      alert('Error al guardar en Supabase: ' + error.message)
+    } else if (data && data.length > 0) {
+      alert('¡Mascota registrada y guardada en Supabase con éxito!')
+      setMascotas([...mascotas, data[0]])
+      setNombreNueva('')
+      setEspecieNueva('')
+      setEdadNueva('')
+      setImagenNueva('')
+      setAdminTab('solicitudes')
+    }
+  }
+
+  const isAdmin = userEmail === ADMIN_EMAIL
+
   if (loading) {
-    return <p className="text-center mt-20 text-gray-500 font-medium animate-pulse">Cargando catálogo...</p>
+    return <p className="text-center mt-20 text-gray-500 font-medium animate-pulse">Cargando panel...</p>
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8 border-b border-pink-100 pb-4">
-          <h1 className="text-3xl font-extrabold text-gray-900">Catálogo de Adopción</h1>
+          <h1 className="text-3xl font-extrabold text-gray-900">
+            {isAdmin ? 'Panel de Administración' : 'Catálogo de Adopción'}
+          </h1>
           <Link href="/" className="text-pink-600 font-semibold hover:underline">
             ← Volver al Inicio
           </Link>
         </div>
 
-        <div className="bg-pink-50 border border-pink-200 p-4 rounded-xl mb-8">
-          <p className="text-pink-900 font-bold">¡Bienvenido{userEmail ? `, ${userEmail}` : ''}!</p>
-          <p className="text-sm text-pink-700">Elige la mascota que deseas adoptar y envía tu solicitud con un solo clic.</p>
-        </div>
+        {isAdmin ? (
+          <div>
+            <div className="bg-green-50 border border-green-200 p-4 rounded-xl mb-6">
+              <p className="text-green-800 font-bold">Modo Administrador Activo ({userEmail})</p>
+              <p className="text-sm text-green-600">Gestiona las solicitudes de adopción y registra nuevas mascotas en la base de datos.</p>
+            </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {mascotas.map((mascota) => {
-            const nombreMascota = mascota.nombre || mascota.name || 'Mascota'
-            const especieMascota = mascota.especie || 'No especificada'
-            const edadMascota = mascota.edad || 'No especificada'
-            const imagenMascota = mascota.imagen || mascota.foto || mascota.url || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'
+            <div className="flex flex-wrap gap-3 mb-6 border-b border-gray-200 pb-3">
+              <button
+                onClick={() => setAdminTab('solicitudes')}
+                className={`px-4 py-2 rounded-xl font-semibold text-sm transition ${adminTab === 'solicitudes' ? 'bg-pink-600 text-white shadow' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
+              >
+                Solicitudes de Adopción
+              </button>
+              <button
+                onClick={() => setAdminTab('usuarios')}
+                className={`px-4 py-2 rounded-xl font-semibold text-sm transition ${adminTab === 'usuarios' ? 'bg-pink-600 text-white shadow' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
+              >
+                Gestión de Usuarios
+              </button>
+              <button
+                onClick={() => setAdminTab('crearMascota')}
+                className={`px-4 py-2 rounded-xl font-semibold text-sm transition ${adminTab === 'crearMascota' ? 'bg-pink-600 text-white shadow' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
+              >
+                + Registrar Mascota Real
+              </button>
+            </div>
 
-            return (
-              <div key={mascota.id} className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100 flex flex-col hover:shadow-lg transition">
-                <img src={imagenMascota} alt={nombreMascota} className="h-52 w-full object-cover" />
-                <div className="p-5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-1">{nombreMascota}</h3>
-                    <p className="text-sm text-gray-600 mb-1"><span className="font-semibold">Especie:</span> {especieMascota}</p>
-                    <p className="text-sm text-gray-600 mb-4"><span className="font-semibold">Edad:</span> {edadMascota}</p>
+            {adminTab === 'solicitudes' && (
+              <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Solicitudes Recibidas</h2>
+                {solicitudes.length === 0 ? (
+                  <p className="text-gray-500 italic py-4">No hay solicitudes pendientes en este momento.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {solicitudes.map((sol) => (
+                      <div key={sol.id} className="border border-gray-200 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-center bg-gray-50 gap-4">
+                        <div>
+                          <p className="text-sm font-bold text-gray-800">ID Solicitud: {sol.id}</p>
+                          <p className="text-xs text-gray-600 mt-1">Mascota ID: {sol.pet_id || 'N/A'}</p>
+                          <p className="text-xs text-gray-600">Estado: <span className="font-semibold text-pink-600 uppercase">{sol.status || 'pendiente'}</span></p>
+                        </div>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                          <button 
+                            onClick={() => gestionarSolicitud(sol.id, 'aprobada')}
+                            className="flex-1 sm:flex-none bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 transition"
+                          >
+                            Aprobar
+                          </button>
+                          <button 
+                            onClick={() => gestionarSolicitud(sol.id, 'rechazada')}
+                            className="flex-1 sm:flex-none bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition"
+                          >
+                            Rechazar
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  
-                  <button 
-                    onClick={async () => {
-                      const { error } = await supabase.from('adoption_requests').insert([
-                        { 
-                          pet_id: mascota.id, 
-                          status: 'pendiente' 
-                        }
-                      ])
-
-                      if (error) {
-                        alert('Error al enviar la solicitud: ' + error.message)
-                      } else {
-                        alert(`¡Solicitud de adopción enviada con éxito para ${nombreMascota}!`)
-                      }
-                    }}
-                    className="w-full bg-pink-600 text-white py-2.5 px-4 rounded-xl font-semibold hover:bg-pink-700 transition shadow-sm"
-                  >
-                    Solicitar Adopción
-                  </button>
-                </div>
+                )}
               </div>
-            )
-          })}
-        </div>
+            )}
+
+            {adminTab === 'usuarios' && (
+              <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Usuarios Registrados</h2>
+                {usuarios.length === 0 ? (
+                  <p className="text-gray-500 italic py-4">No hay perfiles adicionales registrados.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {usuarios.map((usr) => (
+                      <div key={usr.id} className="border border-gray-200 p-3 rounded-xl bg-gray-50 flex justify-between items-center">
+                        <span className="text-sm font-semibold text-gray-800">{usr.email || `ID: ${usr.id}`}</span>
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">Registrado</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {adminTab === 'crearMascota' && (
+              <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 max-w-xl mx-auto">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Registrar Nueva Mascota en Base de Datos</h2>
+                <form onSubmit={handleCrearMascotaReal} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la mascota</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={nombreNueva} 
+                      onChange={(e) => setNombreNueva(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
+                      placeholder="Ej. Ayla"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Especie y Raza</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={especieNueva} 
+                      onChange={(e) => setEspecieNueva(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
+                      placeholder="Ej. Chiguagua"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Edad</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={edadNueva} 
+                      onChange={(e) => setEdadNueva(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
+                      placeholder="Ej. 3 meses"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">URL de la Imagen (Opcional)</label>
+                    <input 
+                      type="text" 
+                      value={imagenNueva} 
+                      onChange={(e) => setImagenNueva(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
+                      placeholder="https://images.unsplash.com/..."
+                    />
+                  </div>
+                  <button 
+                    type="submit"
+                    className="w-full bg-pink-600 text-white py-2.5 rounded-lg font-semibold hover:bg-pink-700 transition shadow"
+                  >
+                    Guardar Mascota en Supabase
+                  </button>
+                </form>
+              </div>
+            )}
+
+          </div>
+        ) : (
+          <div>
+            <div className="bg-pink-50 border border-pink-200 p-4 rounded-xl mb-8">
+              <p className="text-pink-900 font-bold">¡Bienvenido{userEmail ? `, ${userEmail}` : ''}!</p>
+              <p className="text-sm text-pink-700">Elige la mascota que deseas adoptar y envía tu solicitud con un solo clic.</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {mascotas.map((mascota) => {
+                const nombreMascota = mascota.nombre || mascota.name || 'Mascota'
+                const especieMascota = mascota.especie || 'No especificada'
+                const edadMascota = mascota.edad || 'No especificada'
+                const imagenMascota = mascota.imagen || mascota.foto || mascota.url || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'
+
+                return (
+                  <div key={mascota.id} className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100 flex flex-col hover:shadow-lg transition">
+                    <img src={imagenMascota} alt={nombreMascota} className="h-52 w-full object-cover" />
+                    <div className="p-5 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-800 mb-1">{nombreMascota}</h3>
+                        <p className="text-sm text-gray-600 mb-1"><span className="font-semibold">Especie:</span> {especieMascota}</p>
+                        <p className="text-sm text-gray-600 mb-4"><span className="font-semibold">Edad:</span> {edadMascota}</p>
+                      </div>
+                      
+                      <button 
+                        onClick={async () => {
+                          const { error } = await supabase.from('adoption_requests').insert([
+                            { 
+                              pet_id: mascota.id, 
+                              status: 'pendiente' 
+                            }
+                          ])
+
+                          if (error) {
+                            alert('Error al enviar la solicitud: ' + error.message)
+                          } else {
+                            alert(`¡Solicitud de adopción enviada con éxito para ${nombreMascota}!`)
+                          }
+                        }}
+                        className="w-full bg-pink-600 text-white py-2.5 px-4 rounded-xl font-semibold hover:bg-pink-700 transition shadow-sm"
+                      >
+                        Solicitar Adopción
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
