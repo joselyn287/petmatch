@@ -308,9 +308,13 @@ export default function SolicitudesPage() {
                     
                     <button 
                       onClick={async () => {
-                        const { error } = await supabase.from('adoption_requests').insert([
-                          { pet_id: mascota.id, status: 'pendiente' }
-                        ])
+                        const payload: any = { status: 'pendiente' }
+                        if (mascota.id.includes('-')) {
+                          payload.pet_id = mascota.id
+                        }
+
+                        const { error } = await supabase.from('adoption_requests').insert([payload])
+
                         if (error) {
                           alert('Error al enviar la solicitud: ' + error.message)
                         } else {
