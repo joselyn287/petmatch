@@ -65,17 +65,9 @@ export default function SolicitudesPage() {
       const { data: { session } } = await supabase.auth.getSession()
       setUserEmail(session?.user?.email || null)
 
-      // Cargar mascotas reales de Supabase
-      let { data: petData } = await supabase.from('mascotas').select('*')
-      
-      if (!petData || petData.length === 0) {
-        // Si no hay mascotas, insertamos las de ejemplo para que tengan IDs reales en la BD
-        const { data: insertedPets } = await supabase
-          .from('mascotas')
-          .insert(mascotasEjemplo.map(({ id, ...rest }) => rest)) // Quitamos el ID estático para que Supabase genere un UUID real
-          .select('*')
-        
-        setMascotas(insertedPets || mascotasEjemplo)
+      const { data: petData, error: petError } = await supabase.from('mascotas').select('*')
+      if (petError || !petData || petData.length === 0) {
+        setMascotas(mascotasEjemplo)
       } else {
         setMascotas(petData)
       }
@@ -299,12 +291,13 @@ export default function SolicitudesPage() {
                     
                     <button 
                       onClick={async () => {
-                        const { error } = await supabase.from('adoption_requests').insert([
-                          { 
-                            pet_id: mascota.id, 
-                            status: 'pendiente' 
-                          }
-                        ])
+                        // Si el ID tiene formato UUID válido (contiene guiones), lo enviamos; si es de ejemplo ('1','2','3'), lo enviamos como null
+                        const isUuid = mascota.id.includes('-')
+                        const payloadData = isUuid 
+                          ? { pet_id: mascota.id, status: 'pendiente' }
+                          : { status: 'pendiente' } // Sin pet_id para evitar errores de tipo UUID o foreign key
+
+                        const { error } = await supabase.from('adoption_requests').insert([payloadData])
 
                         if (error) {
                           alert('Error al enviar la solicitud: ' + error.message)
