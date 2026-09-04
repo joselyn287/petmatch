@@ -15,7 +15,6 @@ interface Mascota {
 interface Solicitud {
   id: string
   pet_id?: string
-  applicant_id?: string
   status?: string
 }
 
@@ -26,21 +25,21 @@ interface UsuarioPerfil {
 
 const mascotasEjemplo: Mascota[] = [
   {
-    id: 'a0000000-0000-0000-0000-000000000001',
+    id: '1',
     nombre: 'Max',
     especie: 'Perro (Golden Retriever)',
     edad: '2 años',
     imagen: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80'
   },
   {
-    id: 'a0000000-0000-0000-0000-000000000002',
+    id: '2',
     nombre: 'Luna',
     especie: 'Gato (Siamés)',
     edad: '1 año',
     imagen: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80'
   },
   {
-    id: 'a0000000-0000-0000-0000-000000000003',
+    id: '3',
     nombre: 'Rocky',
     especie: 'Perro (Bulldog Francés)',
     edad: '3 años',
@@ -206,10 +205,9 @@ export default function SolicitudesPage() {
                     
                     <button 
                       onClick={async () => {
-                        // Enviamos un UUID válido que cumple el formato de Supabase sin requerir tabla externa de mascotas
+                        // Enviamos solo el status para evitar por completo el conflicto de llave foránea con pet_id
                         const { error } = await supabase.from('adoption_requests').insert([
                           { 
-                            pet_id: mascota.id, 
                             status: 'pendiente' 
                           }
                         ])
