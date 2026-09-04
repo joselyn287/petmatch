@@ -8,9 +8,11 @@ interface Mascota {
   id: string
   nombre?: string
   name?: string
-  especie: string
-  edad: string
+  especie?: string
+  edad?: string
   imagen?: string
+  foto?: string
+  url?: string
 }
 
 export default function SolicitudesPage() {
@@ -23,23 +25,10 @@ export default function SolicitudesPage() {
       const { data: { session } } = await supabase.auth.getSession()
       setUserEmail(session?.user?.email || null)
 
-      // Cargar mascotas desde Supabase
       const { data: petsData } = await supabase.from('pets').select('*')
       if (petsData && petsData.length > 0) {
         setMascotas(petsData)
-      } else {
-        // Mascota por defecto si la tabla está vacía
-        const defaultPet = {
-          nombre: 'Max',
-          name: 'Max',
-          especie: 'Perro (Golden Retriever)',
-          edad: '2 años',
-          imagen: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80'
-        }
-        const { data: inserted } = await supabase.from('pets').insert([defaultPet]).select()
-        if (inserted) setMascotas(inserted)
       }
-
       setLoading(false)
     }
     initData()
@@ -67,18 +56,18 @@ export default function SolicitudesPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {mascotas.map((mascota) => {
             const nombreMascota = mascota.nombre || mascota.name || 'Mascota'
+            const especieMascota = mascota.especie || 'No especificada'
+            const edadMascota = mascota.edad || 'No especificada'
+            const imagenMascota = mascota.imagen || mascota.foto || mascota.url || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'
+
             return (
               <div key={mascota.id} className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100 flex flex-col hover:shadow-lg transition">
-                {mascota.imagen ? (
-                  <img src={mascota.imagen} alt={nombreMascota} className="h-52 w-full object-cover" />
-                ) : (
-                  <div className="h-52 w-full bg-pink-100 flex items-center justify-center text-pink-400 font-semibold">Sin imagen</div>
-                )}
+                <img src={imagenMascota} alt={nombreMascota} className="h-52 w-full object-cover" />
                 <div className="p-5 flex-1 flex flex-col justify-between">
                   <div>
                     <h3 className="text-xl font-bold text-gray-800 mb-1">{nombreMascota}</h3>
-                    <p className="text-sm text-gray-600 mb-1"><span className="font-semibold">Especie:</span> {mascota.especie}</p>
-                    <p className="text-sm text-gray-600 mb-4"><span className="font-semibold">Edad:</span> {mascota.edad}</p>
+                    <p className="text-sm text-gray-600 mb-1"><span className="font-semibold">Especie:</span> {especieMascota}</p>
+                    <p className="text-sm text-gray-600 mb-4"><span className="font-semibold">Edad:</span> {edadMascota}</p>
                   </div>
                   
                   <button 
